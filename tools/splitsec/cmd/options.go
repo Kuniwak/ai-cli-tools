@@ -22,7 +22,8 @@ func ParseOptions(args []string, inout *cli.ProcInout) (*Options, error) {
 	flags := flag.NewFlagSet("splitsec", flag.ContinueOnError)
 	flags.SetOutput(inout.Stderr)
 	flags.Usage = func() {
-		fmt.Fprintf(inout.Stderr, `Usage: splitsec -i <input_file> -o <output_directory>
+		fmt.Fprintf(inout.Stderr, `Usage: splitsec -o <output_directory> < <markdown>
+
 Split a markdown file by sections into files based on the number of seconds in each section.
 
 Options:

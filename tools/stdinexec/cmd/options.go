@@ -24,7 +24,7 @@ func ParseOptions(args []string, inout *cli.ProcInout) (*Options, error) {
 	flags.Usage = func() {
 		fmt.Fprintf(inout.Stderr, `Usage: stdinexec [-0] [-p <parallel>] <command> [<args>...]
 
-Execute a command for each line of the input, similar to "find -exec".
+Execute a command for each line of the input, similar to "find -exec". "{}" in arguments is replaced with the line of the stdin.
 
 Options:
 `)

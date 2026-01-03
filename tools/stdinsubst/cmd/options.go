@@ -27,15 +27,11 @@ func ParseOptions(args []string, inout *cli.ProcInout) (*Options, error) {
 	flags.Usage = func() {
 		fmt.Fprintf(inout.Stderr, `Usage: stdinsubst <before-string> <after-file-path> [<before-string> <after-file-path> ...] < <template>
 
-<before-string> and <after-file-path> are the strings to replace and the file path to replace with.
+<before-string> and <after-file-path> are the strings to replace and the file path to read the replacement from.
 
 Options:
 `)
 		flags.PrintDefaults()
-
-		fmt.Fprintf(inout.Stderr, `Stdin:
-<template> is the template via stdin to use for the replacement.
-`)
 	}
 
 	commonRawOptions := &tools.CommonRawOptions{}
