@@ -120,3 +120,8 @@ Options:
   -version
     	print version and exit
 ```
+
+License
+-------
+
+[MIT License](./LICENSE)
