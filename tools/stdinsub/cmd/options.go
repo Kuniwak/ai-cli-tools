@@ -19,10 +19,10 @@ type Options struct {
 }
 
 func ParseOptions(args []string, inout *cli.ProcInout) (*Options, error) {
-	flags := flag.NewFlagSet("subtract", flag.ContinueOnError)
+	flags := flag.NewFlagSet("stdinsub", flag.ContinueOnError)
 	flags.SetOutput(inout.Stderr)
 	flags.Usage = func() {
-		fmt.Fprintf(inout.Stderr, `Usage: subtract <number1> <number2>
+		fmt.Fprintf(inout.Stderr, `Usage: stdinsub < <minuend> <subtrahend1> <subtrahend2> ...
 
 Subtract the second number from the first number.
 
@@ -44,16 +44,16 @@ Examples:
   line 2
   line 3
 
-  $ subtract ./subtrahend1.txt ./subtrahend2.txt < ./minuend.txt 
+  $ stdinsub ./subtrahend1.txt ./subtrahend2.txt < ./minuend.txt 
   line 1
 
   $ # It is useful to drop processed files from the input.
-  $ find ./input -name '*.md' -print0 | subtract -0 <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|')
+  $ find ./input -name '*.md' -print0 | stdinsub -0 <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|')
   ./input/file1.md
   ...
 
   $ # Process unprocessed ./input/*.md files in parallel using 3 processes by Claude Code.
-  $ subtract -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
+  $ stdinsub -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
 `)
 	}
 

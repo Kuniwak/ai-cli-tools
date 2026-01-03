@@ -40,9 +40,9 @@ builds:
       - amd64
       - arm64
 
-  - id: subtract
-    binary: subtract
-    main: ./tools/subtract/main.go
+  - id: stdinsub
+    binary: stdinsub
+    main: ./tools/stdinsub/main.go
     env:
       - CGO_ENABLED=0
     goos:

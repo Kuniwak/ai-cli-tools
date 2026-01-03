@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/Kuniwak/ai-cli-tools/cli"
-	"github.com/Kuniwak/ai-cli-tools/tools/subtract/cmd"
+	"github.com/Kuniwak/ai-cli-tools/tools/stdinsubtract/cmd"
 )
 
 func main() {
