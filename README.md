@@ -81,3 +81,43 @@ Options:
   -version
     	print version and exit
 ```
+
+
+### subtract
+
+```console
+$ subtract -h
+Usage: subtract <number1> <number2>
+
+Subtract the second number from the first number.
+
+Options:
+  -0	use null byte as the record separator
+  -v	print version and exit
+  -version
+    	print version and exit
+
+Examples:
+  $ cat ./minuend.txt
+  line 1
+  line 2
+  line 3
+
+  $ cat ./subtrahend1.txt
+  line 2
+
+  $ cat ./subtrahend2.txt
+  line 2
+  line 3
+
+  $ subtract ./subtrahend1.txt ./subtrahend2.txt < ./minuend.txt
+  line 1
+
+  $ # It is useful to drop processed files from the input.
+  $ find ./input -name '*.md' -print0 | subtract -0 <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|')
+  ./input/file1.md
+  ...
+
+  $ # Process unprocessed ./input/*.md files in parallel using 3 processes by Claude Code.
+  $ subtract -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
+```
