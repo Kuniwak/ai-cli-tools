@@ -60,29 +60,6 @@ Examples:
 ```
 
 
-### splitsec
-
-```console
-$ splitsec -h
-Usage: splitsec -o <output_directory> < <markdown>
-
-Split a markdown file by sections into files based on the number of seconds in each section.
-
-Options:
-  -o string
-    	output directory
-  -out-dir string
-    	output directory
-  -t string
-    	basename template
-  -tmpl string
-    	basename template
-  -v	print version and exit
-  -version
-    	print version and exit
-```
-
-
 ### stdinsub
 
 ```console
@@ -120,4 +97,26 @@ Examples:
 
   $ # Process unprocessed ./input/*.md files in parallel using 3 processes by Claude Code.
   $ stdinsub -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
+```
+
+### mdsplitsec
+
+```console
+$ mdsplitsec -h
+Usage: mdsplitsec -o <output_directory> < <markdown>
+
+Split a markdown file by sections into files based on the number of seconds in each section.
+
+Options:
+  -o string
+    	output directory
+  -out-dir string
+    	output directory
+  -t string
+    	basename template
+  -tmpl string
+    	basename template
+  -v	print version and exit
+  -version
+    	print version and exit
 ```

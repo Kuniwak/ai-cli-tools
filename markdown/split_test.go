@@ -1,7 +1,6 @@
 package markdown
 
 import (
-	"bytes"
 	"reflect"
 	"strings"
 	"testing"
@@ -12,11 +11,13 @@ import (
 func TestSplitBySections(t *testing.T) {
 	testCases := map[string]struct {
 		input    string
-		expected []string
+		expected map[string]string
 	}{
 		"empty": {
-			input:    "",
-			expected: []string{""},
+			input: "",
+			expected: map[string]string{
+				"out/test-0.md": "",
+			},
 		},
 		"horizontal bar": {
 			input: `aaa
@@ -25,48 +26,51 @@ func TestSplitBySections(t *testing.T) {
 
 bbb
 `,
-			expected: []string{
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": `aaa
 
 ---
 
 bbb
-`},
+`,
+			},
 		},
 		"section with hashes": {
 			input: `# 1`,
-			expected: []string{
-				"",
-				`# 1
-`},
+			expected: map[string]string{
+				"out/test-0.md": "",
+				"out/test-1.md": `# 1
+`,
+			},
 		},
 		"section with equals": {
 			input: `aaa
 ===
 `,
-			expected: []string{
-				"",
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": "",
+				"out/test-1.md": `aaa
 ===
-`},
+`,
+			},
 		},
 		"section with dashes": {
 			input: `aaa
 ---
 `,
-			expected: []string{
-				"",
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": "",
+				"out/test-1.md": `aaa
 ---
 `},
 		},
 		"section with hashes and content before the section": {
 			input: `aaa
 # bbb`,
-			expected: []string{
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": `aaa
 `,
-				`# bbb
+				"out/test-1.md": `# bbb
 `},
 		},
 		"section with equals and content before the section": {
@@ -74,10 +78,10 @@ bbb
 bbb
 ===
 `,
-			expected: []string{
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": `aaa
 `,
-				`bbb
+				"out/test-1.md": `bbb
 ===
 `},
 		},
@@ -86,19 +90,19 @@ bbb
 bbb
 ---
 `,
-			expected: []string{
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": `aaa
 `,
-				`bbb
+				"out/test-1.md": `bbb
 ---
 `},
 		},
 		"section with hashes and content after the section": {
 			input: `# aaa
 bbb`,
-			expected: []string{
-				"",
-				`# aaa
+			expected: map[string]string{
+				"out/test-0.md": "",
+				"out/test-1.md": `# aaa
 bbb
 `},
 		},
@@ -106,9 +110,9 @@ bbb
 			input: `aaa
 ===
 bbb`,
-			expected: []string{
-				"",
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": "",
+				"out/test-1.md": `aaa
 ===
 bbb
 `},
@@ -117,9 +121,9 @@ bbb
 			input: `aaa
 ---
 bbb`,
-			expected: []string{
-				"",
-				`aaa
+			expected: map[string]string{
+				"out/test-0.md": "",
+				"out/test-1.md": `aaa
 ---
 bbb
 `},
@@ -128,18 +132,15 @@ bbb
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			bs := []*bytes.Buffer{}
-			wGen := SpyWriterGenerator(&bs)
-			err := SplitBySections(strings.NewReader(tc.input), wGen)
+			outPathGenerator := NewOutPathgenerator("out", "test-%d.md")
+			spy := NewSpyOpenFileFunc()
+			_, err := SplitBySections(strings.NewReader(tc.input), outPathGenerator, spy.OpenFileFunc())
 			if err != nil {
 				t.Fatalf("SplitBySections: %v", err)
 			}
-			bs2 := make([]string, len(bs))
-			for i, b := range bs {
-				bs2[i] = b.String()
-			}
-			if !reflect.DeepEqual(bs2, tc.expected) {
-				t.Error(cmp.Diff(tc.expected, bs2))
+			written := spy.Written()
+			if !reflect.DeepEqual(written, tc.expected) {
+				t.Error(cmp.Diff(tc.expected, written))
 			}
 		})
 	}

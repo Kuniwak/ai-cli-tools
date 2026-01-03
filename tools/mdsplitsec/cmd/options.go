@@ -16,25 +16,46 @@ type Options struct {
 	Reader           io.Reader
 	OutputDirectory  string
 	BasenameTemplate string
+	Null             bool
 }
 
 func ParseOptions(args []string, inout *cli.ProcInout) (*Options, error) {
-	flags := flag.NewFlagSet("splitsec", flag.ContinueOnError)
+	flags := flag.NewFlagSet("mdsplitsec", flag.ContinueOnError)
 	flags.SetOutput(inout.Stderr)
 	flags.Usage = func() {
-		fmt.Fprintf(inout.Stderr, `Usage: splitsec -o <output_directory> < <markdown>
+		fmt.Fprintf(inout.Stderr, `Usage: mdsplitsec [-0] -o <output_directory> < <markdown>
 
 Split a markdown file by sections into files based on the number of seconds in each section.
 
 Options:
 `)
 		flags.PrintDefaults()
+		fmt.Fprintf(inout.Stderr, `
+Examples:
+  $ cat ./input.md
+  # Section 1
+  ...
+  # Section 2
+  ...
+  # Section 3
+  ...
+
+  $ mdsplitsec -o ./output < ./input.md
+  ./output/section-01.md
+  ./output/section-02.md
+  ./output/section-03.md
+
+  $ cat ./output/section-01.md
+  # Section 1
+  ...
+`)
 	}
 
 	outputDirectoryShort := flags.String("o", "", "output directory")
 	outputDirectoryLong := flags.String("out-dir", "", "output directory")
 	basenameTemplateShort := flags.String("t", "", "basename template")
 	basenameTemplateLong := flags.String("tmpl", "", "basename template")
+	null := flags.Bool("0", false, "use null byte as the record separator")
 
 	commonRawOptions := &tools.CommonRawOptions{}
 	tools.DeclareCommonFlags(flags, commonRawOptions)
@@ -94,5 +115,6 @@ Options:
 		Reader:           inout.Stdin,
 		OutputDirectory:  outputDirectory,
 		BasenameTemplate: basenameTemplate,
+		Null:             *null,
 	}, nil
 }

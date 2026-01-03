@@ -10,9 +10,19 @@ import (
 	"strings"
 )
 
-func NewWriterGenerator(outDir string, basenameTemplate string) func(n int) (io.WriteCloser, error) {
-	return func(n int) (io.WriteCloser, error) {
-		return os.OpenFile(filepath.Join(outDir, fmt.Sprintf(basenameTemplate, n)), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+type OutPathGenerator func(n int) string
+
+func NewOutPathgenerator(outDir string, basenameTemplate string) OutPathGenerator {
+	return func(n int) string {
+		return filepath.Join(outDir, fmt.Sprintf(basenameTemplate, n))
+	}
+}
+
+type OpenFileFunc func(path string, flag int, perm os.FileMode) (io.WriteCloser, error)
+
+func NewOpenFileFunc() OpenFileFunc {
+	return func(path string, flag int, perm os.FileMode) (io.WriteCloser, error) {
+		return os.OpenFile(path, flag, perm)
 	}
 }
 
@@ -32,35 +42,58 @@ func (n *NopWriteCloser) Close() error {
 	return nil
 }
 
-func SpyWriterGenerator(bs *[]*bytes.Buffer) func(n int) (io.WriteCloser, error) {
-	return func(n int) (io.WriteCloser, error) {
-		*bs = append(*bs, &bytes.Buffer{})
-		return NewNopWriteCloser((*bs)[len(*bs)-1]), nil
+type SpyOpenFileFunc struct {
+	m map[string]*bytes.Buffer
+}
+
+func NewSpyOpenFileFunc() *SpyOpenFileFunc {
+	return &SpyOpenFileFunc{m: make(map[string]*bytes.Buffer)}
+}
+
+func (s *SpyOpenFileFunc) Written() map[string]string {
+	m := make(map[string]string)
+	for path, w := range s.m {
+		m[path] = w.String()
+	}
+	return m
+}
+
+func (s *SpyOpenFileFunc) OpenFileFunc() OpenFileFunc {
+	return func(path string, _ int, _ os.FileMode) (io.WriteCloser, error) {
+		w, ok := s.m[path]
+		if !ok {
+			w = bytes.NewBuffer(nil)
+			s.m[path] = w
+		}
+		return NewNopWriteCloser(w), nil
 	}
 }
 
 // SplitBySections splits the reader into sections based on the number of seconds in each section.
 // The writer generator function is called for each section to get the writer for the section.
-func SplitBySections(r io.Reader, wGen func(n int) (io.WriteCloser, error)) error {
+func SplitBySections(r io.Reader, outPathGenerator OutPathGenerator, openFileFunc OpenFileFunc) ([]string, error) {
 	var n int
 	var w io.WriteCloser
+	writtenPaths := make([]string, 0)
 	newWriterFunc := func() (io.WriteCloser, error) {
 		if w != nil {
 			if err := w.Close(); err != nil {
 				return nil, fmt.Errorf("SplitBySections: failed to close previous writer: %w", err)
 			}
 		}
-		w, err := wGen(n)
+		path := outPathGenerator(n)
+		w, err := openFileFunc(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 		if err != nil {
 			return nil, fmt.Errorf("SplitBySections: failed to create new writer: %w", err)
 		}
+		writtenPaths = append(writtenPaths, path)
 		n++
 		return w, nil
 	}
 
 	w, err := newWriterFunc()
 	if err != nil {
-		return fmt.Errorf("SplitBySections: %w", err)
+		return writtenPaths, fmt.Errorf("SplitBySections: %w", err)
 	}
 	var hasPrevLine bool
 	var prevLine string
@@ -73,14 +106,14 @@ func SplitBySections(r io.Reader, wGen func(n int) (io.WriteCloser, error)) erro
 			if strings.HasPrefix(line, "===") || (strings.HasPrefix(line, "---") && prevLine != "") {
 				w, err = newWriterFunc()
 				if err != nil {
-					return fmt.Errorf("SplitBySections: %w", err)
+					return writtenPaths, fmt.Errorf("SplitBySections: %w", err)
 				}
 				io.WriteString(w, prevLine)
 				io.WriteString(w, "\n")
 			} else if strings.HasPrefix(prevLine, "#") {
 				w, err = newWriterFunc()
 				if err != nil {
-					return fmt.Errorf("SplitBySections: %w", err)
+					return writtenPaths, fmt.Errorf("SplitBySections: %w", err)
 				}
 				io.WriteString(w, prevLine)
 				io.WriteString(w, "\n")
@@ -96,7 +129,7 @@ func SplitBySections(r io.Reader, wGen func(n int) (io.WriteCloser, error)) erro
 		if strings.HasPrefix(prevLine, "#") {
 			w, err = newWriterFunc()
 			if err != nil {
-				return fmt.Errorf("SplitBySections: %w", err)
+				return writtenPaths, fmt.Errorf("SplitBySections: %w", err)
 			}
 			io.WriteString(w, prevLine)
 			io.WriteString(w, "\n")
@@ -106,10 +139,10 @@ func SplitBySections(r io.Reader, wGen func(n int) (io.WriteCloser, error)) erro
 		}
 	}
 	if err := w.Close(); err != nil {
-		return fmt.Errorf("SplitBySections: %w", err)
+		return writtenPaths, fmt.Errorf("SplitBySections: %w", err)
 	}
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("SplitBySections: %w", err)
+		return writtenPaths, fmt.Errorf("SplitBySections: %w", err)
 	}
-	return nil
+	return writtenPaths, nil
 }
