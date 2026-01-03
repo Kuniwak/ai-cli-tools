@@ -29,6 +29,12 @@ Execute a command for each line of the input, similar to "find -exec". "{}" in a
 Options:
 `)
 		flags.PrintDefaults()
+
+		fmt.Fprintf(inout.Stderr, `
+Examples:
+  $ # Process ./input/*.md files in parallel using 3 processes by Claude Code.
+  $ find ./input -name '*.md' -print0 | stdinexec -0 -p 3 bash -c 'claude -p < "{}"'
+`)
 	}
 
 	commonRawOptions := &tools.CommonRawOptions{}

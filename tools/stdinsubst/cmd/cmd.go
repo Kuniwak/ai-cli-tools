@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"io"
+	"os"
 	"strings"
 
 	"github.com/Kuniwak/ai-cli-tools/cli"
@@ -35,7 +36,11 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 	args := make([]string, len(options.Replacements)*2)
 	for i, replacement := range options.Replacements {
 		args[i*2] = replacement.Before
-		args[i*2+1] = replacement.After
+		bs, err := os.ReadFile(replacement.After)
+		if err != nil {
+			return fmt.Errorf("MainCommandByOptions: failed to read replacement file: %w", err)
+		}
+		args[i*2+1] = string(bs)
 	}
 	replacer := strings.NewReplacer(args...)
 	tmpl, err := io.ReadAll(options.Template)

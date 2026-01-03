@@ -32,6 +32,22 @@ func ParseOptions(args []string, inout *cli.ProcInout) (*Options, error) {
 Options:
 `)
 		flags.PrintDefaults()
+
+		fmt.Fprintf(inout.Stderr, `
+Examples:
+  $ # Substitute the "%%INPUT_FILE%%" in the template with the contents of the "input-1.txt" file.
+  $ stdinsubst "%%INPUT_FILE%%" ./input-1.txt < ./prompt.md
+
+  $ # Process ./input/*.md files in parallel using 3 processes by Claude Code.
+  $ find ./input -name '*.md' -print0 | stdinexec -0 bash -c 'stdinsubst "%%INPUT_FILE%%" "{}" < ./prompt.md | claude -p'
+
+  $ # Substitute the "%%GREETING%%" and "%%NOUN%%" in the template with the contents of the "hello.txt" and "world.txt" files.
+  $ echo '%%GREETING%%, %%NOUN%%!' | stdinsubst '%%GREETING%%' ./hello.txt '%%NOUN%%' ./world.txt
+
+  $ # Also, you can substitute the "%%GREETING%%" and "%%NOUN%%" in the template with the process substitution.
+  $ echo '%%GREETING%%, %%NOUN%%!' | stdinsubst '%%GREETING%%' <(printf Hello) '%%NOUN%%' <(printf World)
+  Hello, World!
+`)
 	}
 
 	commonRawOptions := &tools.CommonRawOptions{}
