@@ -27,19 +27,6 @@ builds:
       - amd64
       - arm64
 
-  - id: splitsec
-    binary: splitsec
-    main: ./tools/splitsec/main.go
-    env:
-      - CGO_ENABLED=0
-    goos:
-      - linux
-      - windows
-      - darwin
-    goarch:
-      - amd64
-      - arm64
-
   - id: stdinsub
     binary: stdinsub
     main: ./tools/stdinsub/main.go
@@ -56,6 +43,19 @@ builds:
   - id: stdinsplit
     binary: stdinsplit
     main: ./tools/stdinsplit/main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+
+  - id: mdsplitsec
+    binary: mdsplitsec
+    main: ./tools/mdsplitsec/main.go
     env:
       - CGO_ENABLED=0
     goos:
