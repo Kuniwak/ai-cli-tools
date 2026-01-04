@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/Kuniwak/ai-cli-tools/split"
+	"github.com/Kuniwak/ai-cli-tools/testableio"
 	"github.com/google/go-cmp/cmp"
 )
 
@@ -132,8 +134,8 @@ bbb
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
-			outPathGenerator := NewOutPathgenerator("out", "test-%d.md")
-			spy := NewSpyOpenFileFunc()
+			outPathGenerator := split.NewOutPathgenerator("out", "test-%d.md")
+			spy := testableio.NewSpyOpenFileFunc()
 			_, err := SplitBySections(strings.NewReader(tc.input), outPathGenerator, spy.OpenFileFunc())
 			if err != nil {
 				t.Fatalf("SplitBySections: %v", err)

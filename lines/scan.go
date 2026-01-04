@@ -1,6 +1,16 @@
-package scanners
+package lines
 
-import "bytes"
+import (
+	"bufio"
+	"bytes"
+)
+
+func NewScanFunc(null bool) bufio.SplitFunc {
+	if null {
+		return ScanLinesWithNull
+	}
+	return bufio.ScanLines
+}
 
 // ScanLinesWithNull splits the input into lines separated by null bytes.
 func ScanLinesWithNull(data []byte, atEOF bool) (advance int, token []byte, err error) {

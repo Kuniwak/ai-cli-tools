@@ -2,76 +2,18 @@ package markdown
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
+
+	"github.com/Kuniwak/ai-cli-tools/split"
+	"github.com/Kuniwak/ai-cli-tools/testableio"
 )
-
-type OutPathGenerator func(n int) string
-
-func NewOutPathgenerator(outDir string, basenameTemplate string) OutPathGenerator {
-	return func(n int) string {
-		return filepath.Join(outDir, fmt.Sprintf(basenameTemplate, n))
-	}
-}
-
-type OpenFileFunc func(path string, flag int, perm os.FileMode) (io.WriteCloser, error)
-
-func NewOpenFileFunc() OpenFileFunc {
-	return func(path string, flag int, perm os.FileMode) (io.WriteCloser, error) {
-		return os.OpenFile(path, flag, perm)
-	}
-}
-
-type NopWriteCloser struct {
-	w io.Writer
-}
-
-func NewNopWriteCloser(w io.Writer) *NopWriteCloser {
-	return &NopWriteCloser{w: w}
-}
-
-func (n *NopWriteCloser) Write(p []byte) (int, error) {
-	return n.w.Write(p)
-}
-
-func (n *NopWriteCloser) Close() error {
-	return nil
-}
-
-type SpyOpenFileFunc struct {
-	m map[string]*bytes.Buffer
-}
-
-func NewSpyOpenFileFunc() *SpyOpenFileFunc {
-	return &SpyOpenFileFunc{m: make(map[string]*bytes.Buffer)}
-}
-
-func (s *SpyOpenFileFunc) Written() map[string]string {
-	m := make(map[string]string)
-	for path, w := range s.m {
-		m[path] = w.String()
-	}
-	return m
-}
-
-func (s *SpyOpenFileFunc) OpenFileFunc() OpenFileFunc {
-	return func(path string, _ int, _ os.FileMode) (io.WriteCloser, error) {
-		w, ok := s.m[path]
-		if !ok {
-			w = bytes.NewBuffer(nil)
-			s.m[path] = w
-		}
-		return NewNopWriteCloser(w), nil
-	}
-}
 
 // SplitBySections splits the reader into sections based on the number of seconds in each section.
 // The writer generator function is called for each section to get the writer for the section.
-func SplitBySections(r io.Reader, outPathGenerator OutPathGenerator, openFileFunc OpenFileFunc) ([]string, error) {
+func SplitBySections(r io.Reader, outPathGenerator split.OutPathGenerator, openFileFunc testableio.OpenFileFunc) ([]string, error) {
 	var n int
 	var w io.WriteCloser
 	writtenPaths := make([]string, 0)

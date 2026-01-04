@@ -60,6 +60,55 @@ Examples:
 ```
 
 
+### stdinsplit
+
+```console
+$ stdinsplit -h
+Usage: stdinsplit [-0] (-l <line-count> | -n <total-count>) -o <out-dir> [-t <template>] < <input>
+
+Split the input by the separator and write each part to a file in the output directory.
+If <line-count> is specified, split the input into <line-count> lines.
+If <total-count> is specified, split the input into <total-count> parts.
+
+Options:
+  -0	use null byte as the record separator
+  -l int
+    	number of lines per part
+  -line-count int
+    	number of lines per part
+  -n int
+    	number of parts
+  -o string
+    	output directory
+  -out-dir string
+    	output directory
+  -t string
+    	basename template (default: "%03d.txt")
+  -template string
+    	basename template (default: "%03d.txt")
+  -total-count int
+    	number of parts
+  -v	print version and exit
+  -version
+    	print version and exit
+
+Examples:
+  $ # Split the input into 10 parts.
+  $ echo "Hello\nWorld\n" | stdinsplit -o ./output -n 10 -t "part-%02d.txt"
+  ./output/part-00.txt
+  ./output/part-01.txt
+  ...
+  ./output/part-09.txt
+
+  $ # Split the input into 10 lines.
+  $ echo "Hello\nWorld\n" | stdinsplit -o ./output -l 1 -t "part-%02d.txt"
+  ./output/part-00.txt
+  ./output/part-01.txt
+
+  $ # Use with stdinexec to process each part in parallel.
+  $ echo "Hello\nWorld\n" | stdinsplit -0 -o ./output -l 1 | stdinexec -0 -p 2 bash -c 'claude -p < "{}"'
+```
+
 ### stdinsub
 
 ```console

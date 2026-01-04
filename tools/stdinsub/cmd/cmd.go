@@ -3,10 +3,9 @@ package cmd
 import (
 	"bufio"
 	"fmt"
-	"io"
 
 	"github.com/Kuniwak/ai-cli-tools/cli"
-	"github.com/Kuniwak/ai-cli-tools/scanners"
+	"github.com/Kuniwak/ai-cli-tools/lines"
 	"github.com/Kuniwak/ai-cli-tools/version"
 )
 
@@ -33,12 +32,7 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 		return nil
 	}
 
-	var splitFunc bufio.SplitFunc
-	if options.Null {
-		splitFunc = scanners.ScanLinesWithNull
-	} else {
-		splitFunc = bufio.ScanLines
-	}
+	splitFunc := lines.NewScanFunc(options.Null)
 
 	m := make(map[string]struct{})
 	for _, subtrahend := range options.Subtrahends {
@@ -58,11 +52,8 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 	for minuendScanner.Scan() {
 		minuend := minuendScanner.Text()
 		if _, ok := m[minuend]; !ok {
-			io.WriteString(inout.Stdout, minuend)
-			if options.Null {
-				io.WriteString(inout.Stdout, "\u0000")
-			} else {
-				io.WriteString(inout.Stdout, "\n")
+			if err := lines.WriteLine(options.Null, minuend, inout.Stdout); err != nil {
+				return fmt.Errorf("MainCommandByOptions: failed to write minuend: %w", err)
 			}
 		}
 	}

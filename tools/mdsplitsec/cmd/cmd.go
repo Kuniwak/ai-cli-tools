@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/Kuniwak/ai-cli-tools/cli"
+	"github.com/Kuniwak/ai-cli-tools/lines"
 	"github.com/Kuniwak/ai-cli-tools/markdown"
+	"github.com/Kuniwak/ai-cli-tools/split"
+	"github.com/Kuniwak/ai-cli-tools/testableio"
 	"github.com/Kuniwak/ai-cli-tools/version"
 )
 
@@ -32,26 +34,14 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 		return nil
 	}
 
-	outPathGenerator := markdown.NewOutPathgenerator(options.OutputDirectory, options.BasenameTemplate)
-	openFileFunc := markdown.NewOpenFileFunc()
+	outPathGenerator := split.NewOutPathgenerator(options.OutputDirectory, options.BasenameTemplate)
+	openFileFunc := testableio.NewOpenFileFunc()
 	filePaths, err := markdown.SplitBySections(options.Reader, outPathGenerator, openFileFunc)
-	if err := WriteFilePaths(options.Null, filePaths, inout); err != nil {
+	if err := lines.WriteLines(options.Null, filePaths, inout.Stdout); err != nil {
 		return fmt.Errorf("MainCommandByOptions: failed to write file paths: %w", err)
 	}
 	if err != nil {
 		return fmt.Errorf("MainCommandByOptions: %w", err)
-	}
-	return nil
-}
-
-func WriteFilePaths(null bool, filePaths []string, inout *cli.ProcInout) error {
-	for _, filePath := range filePaths {
-		if null {
-			io.WriteString(inout.Stdout, filePath)
-			io.WriteString(inout.Stdout, "\000")
-		} else {
-			fmt.Fprintln(inout.Stdout, filePath)
-		}
 	}
 	return nil
 }

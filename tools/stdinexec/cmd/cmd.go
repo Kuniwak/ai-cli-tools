@@ -10,7 +10,7 @@ import (
 	"strings"
 
 	"github.com/Kuniwak/ai-cli-tools/cli"
-	"github.com/Kuniwak/ai-cli-tools/scanners"
+	"github.com/Kuniwak/ai-cli-tools/lines"
 	"github.com/Kuniwak/ai-cli-tools/version"
 	"golang.org/x/sync/errgroup"
 )
@@ -38,22 +38,16 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 		return nil
 	}
 
-	lines := make(chan string)
+	ch := make(chan string)
 	var eg errgroup.Group
 	eg.Go(func() error {
-		defer close(lines)
+		defer close(ch)
 
 		scanner := bufio.NewScanner(options.Reader)
-		var scanFunc bufio.SplitFunc
-		if options.Null {
-			scanFunc = scanners.ScanLinesWithNull
-		} else {
-			scanFunc = bufio.ScanLines
-		}
-
+		scanFunc := lines.NewScanFunc(options.Null)
 		scanner.Split(scanFunc)
 		for scanner.Scan() {
-			lines <- scanner.Text()
+			ch <- scanner.Text()
 		}
 
 		if err := scanner.Err(); err != nil {
@@ -64,7 +58,7 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 	})
 
 	for i := 0; i < options.Parallel; i++ {
-		eg.Go(executeCommand(i, options.Parallel, lines, slices.Clone(options.CommandAndArgs), inout))
+		eg.Go(executeCommand(i, options.Parallel, ch, slices.Clone(options.CommandAndArgs), inout))
 	}
 
 	if err := eg.Wait(); err != nil {
