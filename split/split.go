@@ -33,10 +33,12 @@ func SplitByLineCount(r io.Reader, lineCount int, outPathGenerator OutPathGenera
 					return nil, fmt.Errorf("SplitByLineCount: failed to close previous writer: %w", err)
 				}
 			}
-			w, err = openFileFunc(outPathGenerator(n/lineCount), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
+			path := outPathGenerator(n / lineCount)
+			w, err = openFileFunc(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 			if err != nil {
 				return nil, fmt.Errorf("SplitByLineCount: failed to create new writer: %w", err)
 			}
+			writtenPaths = append(writtenPaths, path)
 		}
 		line := scanner.Text()
 		fmt.Fprintln(w, line)
