@@ -35,11 +35,52 @@ C Baz
 %%INPUT_TSV%%
 ```
 
-$ # Then, process the TSV files in parallel using 3 processes by Claude Code.
-$ find ./input -name '*.tsv' -print0 | stdinexec -0 bash -c 'stdinsubst < ./prompt.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" | claude -dangerously-skip-permissions -p'
+$ # Next, collect input TSV files.
+$ find ./input -name '*.tsv' -print0 > ./input_files
 
-$ # If Claude Code fails, you can resume the process by the following command.
-$ find ./input -name '*.tsv' -print0 | stdinsub -0 <(find ./output -name '*.json' -print0 | sed -e 's|^\./output/|./input/|' -e 's|\.json\0|.tsv\0|g') | stdinexec -0 bash -c 'stdinsubst < ./prompt.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" | claude -dangerously-skip-permissions -p'
+$ # Next, put a prompt generator script in the ./prompt directory.
+$ cat ./prompt_generator
+#!/bin/bash
+set -euo pipefail
+input_file="$1"
+stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "$input_file" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "$input_file" >"./prompt/$(basename "$input_file").md"
+
+$ # Next, generate prompt.md for each input TSV file.
+$ stdinexec -0 <./input_files ./prompt_generator "{}"
+
+$ # Next, collect prompt.md files.
+$ find ./prompt -name '*.md' -print0 > ./prompt_files
+
+$ # Then, process the TSV files in parallel using 3 processes by Claude Code or Gemini or Codex or so on.
+$ stdinexec -0 <./prompt_files bash -c 'claude -dangerously-skip-permissions -p < "{}"'
+
+$ # You can combine the above steps into a single command.
+$ find ./input -name '*.tsv' -print0 | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" >"./prompt/$(basename "{}").md"' | stdinexec -0 bash -c 'claude -dangerously-skip-permissions -p < "{}"'
+
+$ # If Claude Code fails, you can resume by the following steps.
+$ # 1. Collect processed files.
+$ find ./output -name '*.json' -print0 > ./output_files
+
+$ # 2. Convert output paths to input paths.
+$ stdinexec -0 <./output_files bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"' > ./input_files.processed
+
+$ # 3. Subtract processed files from input files.
+$ stdinsub -0 <./input_files ./input_files.processed > ./input_files.unprocessed
+
+$ # 4. Remove previous prompt.md files.
+$ find ./prompt -name '*.md' -exec rm "{}" \;
+
+$ # 5. Generate prompt.md for unprocessed files.
+$ stdinexec -0 <./input_files.unprocessed ./prompt_generator "{}"
+
+$ # 6. Collect prompt.md files.
+$ find ./prompt -name '*.md' -print0 > ./prompt_files
+
+$ # 7. Resume the process by the following command.
+$ stdinexec -0 <./prompt_files bash -c 'claude -dangerously-skip-permissions -p < "{}"'
+
+$ # You can also combine the steps 1-7 into a single command.
+$ find ./input -name '*.tsv' -print0 | stdinsub -0 <(find ./output -name '*.json' -print0 | stdinexec -0 bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"') | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv$|.json|") "%%INPUT_TSV%%" "{}"' | claude -dangerously-skip-permissions -p'
 ````
 
 
