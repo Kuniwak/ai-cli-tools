@@ -4,6 +4,44 @@ CLI Tools for CLI AI Agents
 Examples
 --------
 
+````console
+$ # First, prepare the prompt.md file.
+$ cat ./prompt.md
+You process the TSV file and output the JSON result to the output location.
+
+# Output Format
+```json
+{
+  "category": string, /* category of the result */
+  "reason": string /* reason of the result */
+}
+```
+
+# Output Location
+```
+%%OUTPUT%%
+```
+
+# Category definition
+```tsv
+Category	Description
+A Foo
+B Bar
+C Baz
+```
+
+# Input
+```tsv
+%%INPUT_TSV%%
+```
+
+$ # Then, process the TSV files in parallel using 3 processes by Claude Code.
+$ find ./input -name '*.tsv' -print0 | stdinexec -0 bash -c 'stdinsubst < ./prompt.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" | claude -dangerously-skip-permissions -p'
+
+$ # If Claude Code fails, you can resume the process by the following command.
+$ find ./input -name '*.tsv' -print0 | stdinsub -0 <(find ./output -name '*.json' -print0 | sed -e 's|^\./output/|./input/|' -e 's|\.json\0|.tsv\0|g') | stdinexec -0 bash -c 'stdinsubst < ./prompt.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" | claude -dangerously-skip-permissions -p'
+````
+
 
 Usage
 -----
