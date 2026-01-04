@@ -15,6 +15,17 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+type Errors []error
+
+func (e Errors) Error() string {
+	sb := strings.Builder{}
+	for _, err := range e {
+		sb.WriteString(err.Error())
+		sb.WriteString("\n")
+	}
+	return sb.String()
+}
+
 func MainCommandByArgs(args []string, inout *cli.ProcInout) int {
 	options, err := ParseOptions(args, inout)
 	if err != nil {
@@ -69,6 +80,7 @@ func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
 
 func executeCommand(i int, parallel int, lines <-chan string, commandAndArgsOrig []string, inout *cli.ProcInout) func() error {
 	return func() error {
+		es := make([]error, 0)
 		for line := range lines {
 			commandAndArgs := slices.Clone(commandAndArgsOrig)
 			for j, arg := range commandAndArgs {
@@ -80,7 +92,8 @@ func executeCommand(i int, parallel int, lines <-chan string, commandAndArgsOrig
 			stderrReader, _ := cmd.StderrPipe()
 
 			if err := cmd.Start(); err != nil {
-				return fmt.Errorf("MainCommandByOptions: failed to execute command: %w (%d %#v)", err, i, commandAndArgs)
+				es = append(es, fmt.Errorf("MainCommandByOptions: failed to execute command: %w (%d %#v)", err, i, commandAndArgs))
+				continue
 			}
 
 			var eg errgroup.Group
@@ -125,12 +138,17 @@ func executeCommand(i int, parallel int, lines <-chan string, commandAndArgsOrig
 			})
 
 			if err := eg.Wait(); err != nil {
-				return fmt.Errorf("MainCommandByOptions: failed to wait for stdout and stderr to complete: %w", err)
+				es = append(es, fmt.Errorf("MainCommandByOptions: failed to wait for stdout and stderr to complete: %w", err))
+				continue
 			}
 
 			if err := cmd.Wait(); err != nil {
-				return fmt.Errorf("MainCommandByOptions: failed to wait for command to complete: %w (%d %#v)", err, i, commandAndArgs)
+				es = append(es, fmt.Errorf("MainCommandByOptions: failed to wait for command to complete: %w (%d %#v)", err, i, commandAndArgs))
+				continue
 			}
+		}
+		if len(es) > 0 {
+			return Errors(es)
 		}
 		return nil
 	}
