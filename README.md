@@ -55,7 +55,9 @@ $ # Then, process the TSV files in parallel using 3 processes by Claude Code or 
 $ stdinexec -0 <./prompt_files bash -c 'claude -dangerously-skip-permissions -p < "{}"'
 
 $ # You can combine the above steps into a single command.
-$ find ./input -name '*.tsv' -print0 | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" >"./prompt/$(basename "{}").md"' | stdinexec -0 bash -c 'claude -dangerously-skip-permissions -p < "{}"'
+$ find ./input -name '*.tsv' -print0 \
+    | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" >"./prompt/$(basename "{}").md"' \
+    | stdinexec -0 bash -c 'claude -dangerously-skip-permissions -p < "{}"'
 
 $ # If Claude Code fails, you can resume by the following steps.
 $ # 1. Collect processed files.
@@ -80,7 +82,9 @@ $ # 7. Resume the process by the following command.
 $ stdinexec -0 <./prompt_files bash -c 'claude -dangerously-skip-permissions -p < "{}"'
 
 $ # You can also combine the steps 1-7 into a single command.
-$ find ./input -name '*.tsv' -print0 | stdinsub -0 <(find ./output -name '*.json' -print0 | stdinexec -0 bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"') | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv$|.json|") "%%INPUT_TSV%%" "{}"' | claude -dangerously-skip-permissions -p'
+$ find ./input -name '*.tsv' -print0 \
+    | stdinsub -0 <(find ./output -name '*.json' -print0 | stdinexec -0 bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"') \
+    | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv$|.json|") "%%INPUT_TSV%%" "{}"' | claude -dangerously-skip-permissions -p'
 ````
 
 
@@ -225,28 +229,6 @@ Examples:
 
   $ # Process unprocessed ./input/*.md files in parallel using 3 processes by Claude Code.
   $ stdinsub -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
-```
-
-### mdsplitsec
-
-```console
-$ mdsplitsec -h
-Usage: mdsplitsec -o <output_directory> < <markdown>
-
-Split a markdown file by sections into files based on the number of seconds in each section.
-
-Options:
-  -o string
-    	output directory
-  -out-dir string
-    	output directory
-  -t string
-    	basename template
-  -tmpl string
-    	basename template
-  -v	print version and exit
-  -version
-    	print version and exit
 ```
 
 License
