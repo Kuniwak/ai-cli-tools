@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euo pipefail
+
+# XXX: To support -z option, we need to use gsed on macOS because sed on macOS does not support -z option.
+
+case "$(uname -s)" in
+    Darwin)
+        gsed "$@"
+        ;;
+    *)
+        sed "$@"
+        ;;
+esac

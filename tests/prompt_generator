@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+throw() {
+    local msg="$*"
+    printf "%s\n" "$msg" >&2
+    exit 1
+}
+
+main() {
+    local input_file="${1:-}"
+    [[ -f "$input_file" ]] || throw "input file not found: $input_file"
+
+    local output_file="./prompt/$(basename "$input_file" | sed -e "s|\.tsv$|.md|")"
+    stdinsubst <./prompt_template.md "%%OUTPUT%%" <(echo "$input_file" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "$input_file" >"$output_file"
+    printf "%s\0" "$output_file"
+}
+
+main "$@"

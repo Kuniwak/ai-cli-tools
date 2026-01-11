@@ -4,9 +4,12 @@ CLI Tools for CLI AI Agents
 Examples
 --------
 
+In this example, `sed` is GNU Sed, so if you are using BSD Sed, you may need to replace `sed` with `gsed`.
+
+You can query multiple prompts to the Agentic AI in parallel by the following steps:
+
 ````console
-$ # First, prepare the prompt.md file.
-$ cat ./prompt.md
+$ cat ./prompt_template.md
 You process the TSV file and output the JSON result to the output location.
 
 # Output Format
@@ -35,63 +38,72 @@ C Baz
 %%INPUT_TSV%%
 ```
 
-$ # Next, collect input TSV files.
+$ # 1. Collect input TSV files.
 $ find ./input -name '*.tsv' -print0 > ./input_files
 
-$ # Next, put a prompt generator script in the ./prompt directory.
+$ # 2. Put a prompt generator script.
 $ cat ./prompt_generator
 #!/bin/bash
 set -euo pipefail
-input_file="$1"
-stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "$input_file" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "$input_file" >"./prompt/$(basename "$input_file").md"
 
-$ # Next, generate prompt.md for each input TSV file.
-$ stdinexec -0 <./input_files ./prompt_generator "{}"
+input_file="${1:-}"
+output_file="./prompt/$(basename "$input_file" | sed -e "s|\.tsv$|.md|")"
+stdinsubst <./prompt_template.md "%%OUTPUT%%" <(echo "$input_file" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "$input_file" >"$output_file"
+printf "%s\0" "$output_file"
 
-$ # Next, collect prompt.md files.
-$ find ./prompt -name '*.md' -print0 > ./prompt_files
+$ # 3. Generate prompt.md for each input TSV file and collect them.
+$ parallel -0 <./input_files ./prompt_generator '{}' >./prompt_files
 
-$ # Then, process the TSV files in parallel using 3 processes by Claude Code or Gemini or Codex or so on.
-$ stdinexec -0 <./prompt_files bash -c 'claude -dangerously-skip-permissions -p < "{}"'
+$ # 4. Process the TSV files in parallel using 3 processes by Agentic AI.
+$ parallel -j3 -0 <./prompt_files 'claude -dangerously-skip-permissions -p < "{}"'
 
-$ # You can combine the above steps into a single command.
-$ find ./input -name '*.tsv' -print0 \
-    | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv|.json|") "%%INPUT_TSV%%" "{}" >"./prompt/$(basename "{}").md"' \
-    | stdinexec -0 bash -c 'claude -dangerously-skip-permissions -p < "{}"'
+$ # 5. Done!
+$ tree ./output
+./output
+├── a.json
+├── b.json
+└── c.json
 
-$ # If Claude Code fails, you can resume by the following steps.
-$ # 1. Collect processed files.
+$ # If Agentic AI failed, you can resume by the following steps:
+
+$ # 1. Collect input TSV files.
+$ find ./input -name '*.tsv' -print0 > ./input_files
+
+$ # 2. Collect processed files.
 $ find ./output -name '*.json' -print0 > ./output_files
 
-$ # 2. Convert output paths to input paths.
-$ stdinexec -0 <./output_files bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"' > ./input_files.processed
+$ # 3. Convert output paths to input paths.
+$ parallel -0 <./output_files bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"' > ./input_files.processed
 
-$ # 3. Subtract processed files from input files.
-$ stdinsub -0 <./input_files ./input_files.processed > ./input_files.unprocessed
+$ # 4. Subtract processed files from input files.
+$ stdinsub -0 <./input_files ./input_files.processed >./input_files.unprocessed
 
-$ # 4. Remove previous prompt.md files.
+$ # 5. Remove previous prompt.md files.
 $ find ./prompt -name '*.md' -exec rm "{}" \;
 
-$ # 5. Generate prompt.md for unprocessed files.
-$ stdinexec -0 <./input_files.unprocessed ./prompt_generator "{}"
-
-$ # 6. Collect prompt.md files.
-$ find ./prompt -name '*.md' -print0 > ./prompt_files
+$ # 6. Re-generate prompt.md for unprocessed files.
+$ parallel -0 <./input_files.unprocessed ./prompt_generator '{}' >./prompt_files
 
 $ # 7. Resume the process by the following command.
-$ stdinexec -0 <./prompt_files bash -c 'claude -dangerously-skip-permissions -p < "{}"'
-
-$ # You can also combine the steps 1-7 into a single command.
-$ find ./input -name '*.tsv' -print0 \
-    | stdinsub -0 <(find ./output -name '*.json' -print0 | stdinexec -0 bash -c 'printf "{}" | sed -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|"') \
-    | stdinexec -0 bash -c 'stdinsubst < ./prompt/template.md "%%OUTPUT%%" <(echo "{}" | sed -e "s|\./input/|./output/|" -e "s|\.tsv$|.json|") "%%INPUT_TSV%%" "{}"' | claude -dangerously-skip-permissions -p'
+$ parallel -j3 -0 <./prompt_files 'claude -dangerously-skip-permissions -p < "{}"'
 ````
+
+You can combine the above steps into a single command:
+
+```console
+$ find ./input -name '*.tsv' -print0 \
+    | stdinsub -0 <(find ./output -name '*.json' -print0 | sed -z -e "s|^\./output/|./input/|" -e "s|\.json$|.tsv|") \
+    | parallel -0 ./prompt_generator "{}" \
+    | parallel -j3 -0 'claude -dangerously-skip-permissions -p < "{}"'
+```
 
 
 Usage
 -----
 
 ### stdinexec
+
+**Deprecated**. Use [`parallel`](https://www.gnu.org/software/parallel/) instead.
 
 ```console
 $ stdinexec -h
@@ -144,6 +156,8 @@ Examples:
 
 
 ### stdinsplit
+
+**Deprecated**. Use [`split`](https://www.gnu.org/software/coreutils/manual/html_node/split-invocation.html) instead.
 
 ```console
 $ stdinsplit -h
@@ -223,12 +237,12 @@ Examples:
   line 1
 
   $ # It is useful to drop processed files from the input.
-  $ find ./input -name '*.md' -print0 | stdinsub -0 <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|')
+  $ find ./input -name '*.md' -print0 | stdinsub -0 <(find ./output -name '*.md' -print0 | sed -z -e 's|^\./input/|./output/|')
   ./input/file1.md
   ...
 
   $ # Process unprocessed ./input/*.md files in parallel using 3 processes by Claude Code.
-  $ stdinsub -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
+  $ stdinsub -0 <(find ./input -name '*.md' -print0) <(find ./output -name '*.md' -print0 | sed -z -e 's|^\./input/|./output/|') | stdinexec -0 bash -c 'claude -p < "{}"'
 ```
 
 License

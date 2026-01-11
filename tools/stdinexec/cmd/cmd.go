@@ -40,6 +40,8 @@ func MainCommandByArgs(args []string, inout *cli.ProcInout) int {
 }
 
 func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
+	fmt.Fprintln(inout.Stderr, "Deprecated: stdinexec is deprecated. Use GNU parallel instead.")
+
 	if options.CommonOptions.Help {
 		return nil
 	}

@@ -1,0 +1,7 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Claude:"
+echo "  args: $*"
+echo "  stdin:"
+cat -

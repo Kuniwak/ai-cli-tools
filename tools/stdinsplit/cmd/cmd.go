@@ -24,6 +24,8 @@ func MainCommandByArgs(args []string, inout *cli.ProcInout) int {
 }
 
 func MainCommandByOptions(options *Options, inout *cli.ProcInout) error {
+	fmt.Fprintln(inout.Stderr, "Deprecated: stdinsplit is deprecated. Use GNU CoreUtils's split instead.")
+
 	if options.CommonOptions.Help {
 		return nil
 	}
