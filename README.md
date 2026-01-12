@@ -103,7 +103,9 @@ Usage
 
 ### stdinexec
 
-**Deprecated**. Use [`parallel`](https://www.gnu.org/software/parallel/) instead.
+
+<details>
+<summary><b>Deprecated</b>. Use <a href="https://www.gnu.org/software/parallel/"><code>parallel</code></a> instead.</summary>
 
 ```console
 $ stdinexec -h
@@ -125,6 +127,7 @@ Examples:
   $ # Process ./input/*.md files in parallel using 3 processes by Claude Code.
   $ find ./input -name '*.md' -print0 | stdinexec -0 -p 3 bash -c 'claude -p < "{}"'
 ```
+</details>
 
 ### stdinsubst
 
@@ -157,7 +160,8 @@ Examples:
 
 ### stdinsplit
 
-**Deprecated**. Use [`split`](https://www.gnu.org/software/coreutils/manual/html_node/split-invocation.html) instead.
+<details>
+<summary><b>Deprecated</b>. Use <a href="https://www.gnu.org/software/coreutils/manual/html_node/split-invocation.html"><code>split</code></a> instead.</summary>
 
 ```console
 $ stdinsplit -h
@@ -205,6 +209,7 @@ Examples:
   $ # Use with stdinexec to process each part in parallel.
   $ echo "Hello\nWorld\n" | stdinsplit -0 -o ./output -l 1 | stdinexec -0 -p 2 bash -c 'claude -p < "{}"'
 ```
+</details>
 
 ### stdinsub
 
